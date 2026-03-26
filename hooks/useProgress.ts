@@ -30,13 +30,11 @@ export function useProgress() {
       .from('user_progress')
       .upsert({ session_id: sessionId, completed_at: new Date().toISOString() })
 
-    setCompletedIds((prev) => {
-      const next = new Set(prev)
-      next.add(sessionId)
-      setItem(STORAGE_KEY, Array.from(next))
-      return next
-    })
-  }, [])
+    const next = new Set(completedIds)
+    next.add(sessionId)
+    setCompletedIds(next)
+    await setItem(STORAGE_KEY, Array.from(next))
+  }, [completedIds])
 
   const isCompleted = useCallback(
     (sessionId: string) => completedIds.has(sessionId),

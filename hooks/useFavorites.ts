@@ -34,12 +34,10 @@ export function useFavorites() {
         .from('user_favorites')
         .upsert({ session_id: sessionId, added_at: new Date().toISOString() })
     }
-    setFavoriteIds((prev) => {
-      const next = new Set(prev)
-      isFav ? next.delete(sessionId) : next.add(sessionId)
-      setItem(STORAGE_KEY, Array.from(next))
-      return next
-    })
+    const next = new Set(favoriteIds)
+    isFav ? next.delete(sessionId) : next.add(sessionId)
+    setFavoriteIds(next)
+    await setItem(STORAGE_KEY, Array.from(next))
   }, [favoriteIds])
 
   const isFavorite = useCallback(

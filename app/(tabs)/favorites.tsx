@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   View,
   FlatList,
@@ -11,14 +11,40 @@ import { useTranslation } from 'react-i18next'
 import { useFavorites } from '@/hooks/useFavorites'
 import { SessionCard } from '@/components/topic/SessionCard'
 import { colors, spacing } from '@/constants/theme'
+import { supabase } from '@/lib/supabase'
 import i18n from '@/lib/i18n'
 import type { Session } from '@/types'
 
 export default function FavoritesScreen() {
   const { t } = useTranslation('favorites')
   const { favoriteIds } = useFavorites()
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const sessions: Session[] = []
+  useEffect(() => {
+    if (favoriteIds.size === 0) {
+      setSessions([])
+      return
+    }
+    const ids = Array.from(favoriteIds)
+    setLoading(true)
+    supabase
+      .from('sessions')
+      .select('*')
+      .in('id', ids)
+      .then(({ data }) => {
+        setSessions((data ?? []) as Session[])
+        setLoading(false)
+      })
+  }, [favoriteIds])
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.accent.primary} size="large" />
+      </View>
+    )
+  }
 
   if (favoriteIds.size === 0) {
     return (

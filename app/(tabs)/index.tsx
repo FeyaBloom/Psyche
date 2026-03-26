@@ -18,7 +18,6 @@ import type { Topic } from '@/types'
 import type { Locale } from '@/types'
 
 const LOCALES: Locale[] = ['ru', 'en', 'es', 'ca']
-const SESSIONS_PER_TOPIC = 7
 
 export default function HomeScreen() {
   const { t } = useTranslation('common')
@@ -89,7 +88,7 @@ export default function HomeScreen() {
             <TopicCard
               topic={item}
               completed={completedCount}
-              total={SESSIONS_PER_TOPIC}
+              total={sessions.length}
               locale={locale}
               onPress={() => router.push(`/topic/${item.id}`)}
             />
