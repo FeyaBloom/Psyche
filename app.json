@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Psyche",
+    "slug": "psyche",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "psyche",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.feyabloom.psyche"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F1117"
+      },
+      "package": "com.feyabloom.psyche"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
