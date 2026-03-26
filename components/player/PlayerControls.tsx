@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 import { colors, spacing } from '@/constants/theme'
 
 interface PlayerControlsProps {
@@ -27,7 +28,7 @@ export function PlayerControls({
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onRewindBack} style={styles.control}>
-        <Text style={styles.controlText}>‹‹ 15</Text>
+        <Ionicons name="play-back" size={24} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -35,11 +36,11 @@ export function PlayerControls({
         style={styles.playButton}
         accessibilityLabel={isPlaying ? t('pause') : t('play')}
       >
-        <Text style={styles.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+        <Ionicons name={isPlaying ? 'pause' : 'play'} size={28} color={colors.text.primary} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onRewindForward} style={styles.control}>
-        <Text style={styles.controlText}>15 ››</Text>
+        <Ionicons name="play-forward" size={24} color={colors.text.secondary} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -47,7 +48,11 @@ export function PlayerControls({
         style={styles.favoriteButton}
         accessibilityLabel={isFavorite ? t('removeFavorite') : t('addFavorite')}
       >
-        <Text style={styles.favoriteIcon}>{isFavorite ? '♥' : '♡'}</Text>
+        <Ionicons
+          name={isFavorite ? 'heart' : 'heart-outline'}
+          size={28}
+          color={colors.accent.primary}
+        />
       </TouchableOpacity>
     </View>
   )
@@ -64,10 +69,6 @@ const styles = StyleSheet.create({
   control: {
     padding: spacing.sm,
   },
-  controlText: {
-    color: colors.text.secondary,
-    fontSize: 18,
-  },
   playButton: {
     width: 72,
     height: 72,
@@ -76,15 +77,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playIcon: {
-    color: colors.text.primary,
-    fontSize: 28,
-  },
   favoriteButton: {
     padding: spacing.sm,
-  },
-  favoriteIcon: {
-    color: colors.accent.primary,
-    fontSize: 28,
   },
 })

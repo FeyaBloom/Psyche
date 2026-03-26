@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { Audio } from 'expo-av'
-import { createSound } from '@/lib/audio'
+import { useEffect, useRef, useCallback } from 'react'
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio'
 
 interface AudioState {
   isPlaying: boolean
@@ -9,58 +8,51 @@ interface AudioState {
 }
 
 interface UseAudioReturn extends AudioState {
-  play: () => Promise<void>
-  pause: () => Promise<void>
+  play: () => void
+  pause: () => void
   seek: (ms: number) => Promise<void>
 }
 
 export function useAudio(uri: string | null): UseAudioReturn {
-  const soundRef = useRef<Audio.Sound | null>(null)
-  const [state, setState] = useState<AudioState>({
-    isPlaying: false,
-    position: 0,
-    duration: 0,
-  })
+  const player = useAudioPlayer(uri ?? undefined)
+  const status = useAudioPlayerStatus(player)
+  const prevUri = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
-    if (!uri) return
-    let mounted = true
-
-    const load = async () => {
-      const sound = await createSound(uri)
-      soundRef.current = sound
-
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (!mounted) return
-        if (!status.isLoaded) return
-        setState({
-          isPlaying: status.isPlaying,
-          position: status.positionMillis,
-          duration: status.durationMillis ?? 0,
-        })
-      })
-    }
-
-    load()
-
-    return () => {
-      mounted = false
-      soundRef.current?.unloadAsync()
-      soundRef.current = null
-    }
-  }, [uri])
-
-  const play = useCallback(async () => {
-    await soundRef.current?.playAsync()
+    setAudioModeAsync({ playsInSilentMode: true })
   }, [])
 
-  const pause = useCallback(async () => {
-    await soundRef.current?.pauseAsync()
-  }, [])
+  useEffect(() => {
+    if (prevUri.current === undefined) {
+      prevUri.current = uri
+      return
+    }
+    if (uri !== prevUri.current) {
+      prevUri.current = uri
+      if (uri) {
+        player.replace(uri)
+      }
+    }
+  }, [uri, player])
+
+  const play = useCallback(() => {
+    player.play()
+  }, [player])
+
+  const pause = useCallback(() => {
+    player.pause()
+  }, [player])
 
   const seek = useCallback(async (ms: number) => {
-    await soundRef.current?.setPositionAsync(ms)
-  }, [])
+    await player.seekTo(ms / 1000)
+  }, [player])
 
-  return { ...state, play, pause, seek }
+  return {
+    isPlaying: status.playing,
+    position: status.currentTime * 1000,
+    duration: status.duration * 1000,
+    play,
+    pause,
+    seek,
+  }
 }

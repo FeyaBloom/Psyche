@@ -16,7 +16,7 @@ export function useProgress() {
       const { data } = await supabase
         .from('user_progress')
         .select('session_id')
-      if (data) {
+      if (data && data.length > 0) {
         const ids = (data as Pick<UserProgress, 'session_id'>[]).map((r) => r.session_id)
         setCompletedIds(new Set(ids))
         await setItem(STORAGE_KEY, ids)

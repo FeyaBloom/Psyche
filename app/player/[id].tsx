@@ -5,10 +5,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Image,
 } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '@/lib/supabase'
+import { fetchSessionById } from '@/lib/content'
 import { PlayerControls } from '@/components/player/PlayerControls'
 import { colors, spacing } from '@/constants/theme'
 import { useAudio } from '@/hooks/useAudio'
@@ -19,6 +20,32 @@ import type { Session } from '@/types'
 import type { Locale } from '@/types'
 
 const REWIND_MS = 15_000
+
+const DEMO_SESSION: Session = {
+  id: 'demo',
+  topic_id: 'demo-topic',
+  order_index: 1,
+  duration: 180,
+  cover_url: 'https://picsum.photos/seed/demo-player/900/900',
+  translations: {
+    ru: {
+      title: 'Демо-аудио (без базы)',
+      audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    },
+    en: {
+      title: 'Demo audio (without DB)',
+      audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    },
+    es: {
+      title: 'Audio de prueba (sin BD)',
+      audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    },
+    ca: {
+      title: 'Audio de prova (sense BD)',
+      audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    },
+  },
+}
 
 export default function PlayerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -37,20 +64,24 @@ export default function PlayerScreen() {
 
   useEffect(() => {
     const fetchSession = async () => {
-      const { data, error: err } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', id)
-        .single()
-      if (err) {
-        setError(err.message)
-      } else {
-        setSession(data as Session)
+      if (id === 'demo') {
+        setSession(DEMO_SESSION)
+        setError(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const data = await fetchSessionById(id)
+        setSession(data)
+        setError(data ? null : t('error'))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('error'))
       }
       setLoading(false)
     }
     fetchSession()
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     if (!session || markedComplete) return
@@ -88,9 +119,11 @@ export default function PlayerScreen() {
 
   const translation = session.translations[locale] ?? session.translations.ru
   const completed = isCompleted(session.id)
+  const coverUrl = session.cover_url ?? 'https://picsum.photos/seed/player-default/900/900'
 
   return (
     <View style={styles.container}>
+      <Image source={{ uri: coverUrl }} style={styles.cover} resizeMode="cover" />
       <Text style={styles.title}>{translation.title}</Text>
 
       {completed && (
@@ -145,6 +178,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.md,
     textAlign: 'center',
+  },
+  cover: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 16,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.bg.secondary,
   },
   completedBadge: {
     color: colors.success,

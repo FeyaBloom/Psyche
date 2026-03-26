@@ -1,6 +1,7 @@
 import React from 'react'
 import { Tabs } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 import { colors } from '@/constants/theme'
 
 export default function TabsLayout() {
@@ -18,11 +19,23 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: t('home'), tabBarLabel: t('home') }}
+        options={{
+          title: t('home'),
+          tabBarLabel: t('home'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" color={color} size={size} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="favorites"
-        options={{ title: t('favorites'), tabBarLabel: t('favorites') }}
+        options={{
+          title: t('favorites'),
+          tabBarLabel: t('favorites'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="heart-outline" color={color} size={size} />
+          ),
+        }}
       />
     </Tabs>
   )

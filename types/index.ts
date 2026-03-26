@@ -4,6 +4,7 @@ export interface ContentType {
   id: string
   slug: string
   order_index: number
+  cover_url?: string
   translations: Record<Locale, { title: string; description: string }>
 }
 
@@ -12,6 +13,7 @@ export interface Topic {
   content_type_id: string
   slug: string
   order_index: number
+  cover_url?: string
   translations: Record<Locale, { title: string; description: string }>
   sessions?: Session[]
 }
@@ -21,6 +23,7 @@ export interface Session {
   topic_id: string
   order_index: number
   duration: number
+  cover_url?: string
   translations: Record<Locale, { title: string; audio_url: string }>
 }
 

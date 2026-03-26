@@ -47,6 +47,12 @@ export default function OnboardingScreen() {
 
   const isLast = activeIndex === SLIDES.length - 1
 
+  const handleNext = () => {
+    const nextIndex = Math.min(activeIndex + 1, SLIDES.length - 1)
+    setActiveIndex(nextIndex)
+    flatListRef.current?.scrollToOffset({ offset: nextIndex * width, animated: true })
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -56,11 +62,8 @@ export default function OnboardingScreen() {
         keyExtractor={(item) => item.key}
         horizontal
         pagingEnabled
+        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / width)
-          setActiveIndex(index)
-        }}
       />
       <View style={styles.dotsRow}>
         {SLIDES.map((_, i) => (
@@ -70,11 +73,13 @@ export default function OnboardingScreen() {
           />
         ))}
       </View>
-      {isLast && (
-        <View style={styles.buttonContainer}>
+      <View style={styles.buttonContainer}>
+        {isLast ? (
           <Button label={t('start')} onPress={handleStart} />
-        </View>
-      )}
+        ) : (
+          <Button label={t('next')} onPress={handleNext} />
+        )}
+      </View>
     </View>
   )
 }

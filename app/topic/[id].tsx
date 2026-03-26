@@ -9,7 +9,7 @@ import {
 } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '@/lib/supabase'
+import { fetchSessionsByTopic } from '@/lib/content'
 import { SessionCard } from '@/components/topic/SessionCard'
 import { colors, spacing } from '@/constants/theme'
 import { useProgress } from '@/hooks/useProgress'
@@ -27,18 +27,14 @@ export default function TopicScreen() {
   const fetchSessions = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const { data, error: err } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('topic_id', id)
-      .order('order_index')
-    if (err) {
-      setError(err.message)
-    } else {
-      setSessions((data ?? []) as Session[])
+    try {
+      const data = await fetchSessionsByTopic(id)
+      setSessions(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('error'))
     }
     setLoading(false)
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     fetchSessions()

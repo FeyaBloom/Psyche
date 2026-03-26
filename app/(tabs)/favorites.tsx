@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { useFavorites } from '@/hooks/useFavorites'
 import { SessionCard } from '@/components/topic/SessionCard'
 import { colors, spacing } from '@/constants/theme'
-import { supabase } from '@/lib/supabase'
+import { fetchSessionsByIds } from '@/lib/content'
 import i18n from '@/lib/i18n'
 import type { Session } from '@/types'
 
@@ -28,12 +28,13 @@ export default function FavoritesScreen() {
     }
     const ids = Array.from(favoriteIds)
     setLoading(true)
-    supabase
-      .from('sessions')
-      .select('*')
-      .in('id', ids)
-      .then(({ data }) => {
-        setSessions((data ?? []) as Session[])
+    fetchSessionsByIds(ids)
+      .then((data) => {
+        setSessions(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setSessions([])
         setLoading(false)
       })
   }, [favoriteIds])

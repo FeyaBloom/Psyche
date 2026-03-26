@@ -16,7 +16,7 @@ export function useFavorites() {
       const { data } = await supabase
         .from('user_favorites')
         .select('session_id')
-      if (data) {
+      if (data && data.length > 0) {
         const ids = (data as Pick<UserFavorite, 'session_id'>[]).map((r) => r.session_id)
         setFavoriteIds(new Set(ids))
         await setItem(STORAGE_KEY, ids)

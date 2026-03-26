@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react'
 import {
   View,
   FlatList,
@@ -8,9 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import { router } from 'expo-router'
+import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/lib/i18n'
-import { supabase } from '@/lib/supabase'
+import { fetchTopicsWithSessions } from '@/lib/content'
 import { TopicCard } from '@/components/topic/TopicCard'
 import { colors, spacing } from '@/constants/theme'
 import { useProgress } from '@/hooks/useProgress'
@@ -21,6 +22,7 @@ const LOCALES: Locale[] = ['ru', 'en', 'es', 'ca']
 
 export default function HomeScreen() {
   const { t } = useTranslation('common')
+  const navigation = useNavigation()
   const [topics, setTopics] = useState<Topic[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,28 +32,35 @@ export default function HomeScreen() {
   const fetchTopics = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const { data, error: err } = await supabase
-      .from('topics')
-      .select('*, sessions(*)')
-      .order('order_index')
-    if (err) {
-      setError(err.message)
-    } else {
-      setTopics((data ?? []) as Topic[])
+    try {
+      const data = await fetchTopicsWithSessions()
+      setTopics(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('error'))
     }
     setLoading(false)
-  }, [])
+  }, [t])
 
-  useEffect(() => {
-    fetchTopics()
-  }, [fetchTopics])
-
-  const cycleLocale = () => {
+  const cycleLocale = useCallback(() => {
     const idx = LOCALES.indexOf(locale)
     const next = LOCALES[(idx + 1) % LOCALES.length]
     setLocale(next)
     i18n.changeLanguage(next)
-  }
+  }, [locale])
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={cycleLocale} style={styles.langToggle}>
+          <Text style={styles.langText}>{locale.toUpperCase()}</Text>
+        </TouchableOpacity>
+      ),
+    })
+  }, [locale, cycleLocale, navigation])
+
+  useEffect(() => {
+    fetchTopics()
+  }, [fetchTopics])
 
   if (loading) {
     return (
@@ -68,15 +77,29 @@ export default function HomeScreen() {
         <TouchableOpacity onPress={fetchTopics}>
           <Text style={styles.retryText}>{t('retry')}</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/player/demo')} style={styles.demoButton}>
+          <Text style={styles.demoButtonText}>Открыть демо-аудио</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
+  if (topics.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.emptyText}>В базе пока нет данных</Text>
+        <TouchableOpacity onPress={() => router.push('/player/demo')} style={styles.demoButton}>
+          <Text style={styles.demoButtonText}>Проверить плеер на демо-аудио</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={fetchTopics}>
+          <Text style={styles.retryText}>{t('retry')}</Text>
+        </TouchableOpacity>
       </View>
     )
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={cycleLocale} style={styles.langToggle}>
-        <Text style={styles.langText}>{locale.toUpperCase()}</Text>
-      </TouchableOpacity>
       <FlatList
         data={topics}
         keyExtractor={(item) => item.id}
@@ -123,11 +146,25 @@ const styles = StyleSheet.create({
     color: colors.accent.primary,
     fontSize: 16,
   },
+  emptyText: {
+    color: colors.text.secondary,
+    fontSize: 16,
+    marginBottom: spacing.md,
+  },
+  demoButton: {
+    backgroundColor: colors.accent.primary,
+    borderRadius: 10,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  demoButtonText: {
+    color: colors.bg.primary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   langToggle: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-    zIndex: 10,
+    marginRight: spacing.md,
     backgroundColor: colors.bg.elevated,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,

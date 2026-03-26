@@ -1,8 +1,8 @@
 import React from 'react'
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native'
+import { TouchableOpacity, Text, StyleSheet, View, Image } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
-import { colors, spacing } from '@/constants/theme'
+import { colors, radius, spacing } from '@/constants/theme'
 import type { Topic } from '@/types'
 
 interface TopicCardProps {
@@ -17,10 +17,12 @@ export function TopicCard({ topic, completed, total, onPress, locale }: TopicCar
   const { t } = useTranslation('topic')
   const translation = topic.translations[locale as keyof typeof topic.translations] ?? topic.translations.ru
   const progress = total > 0 ? completed / total : 0
+  const coverUrl = topic.cover_url ?? 'https://picsum.photos/seed/topic-default/800/480'
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <Card style={styles.card}>
+        <Image source={{ uri: coverUrl }} style={styles.cover} resizeMode="cover" />
         <Text style={styles.title}>{translation.title}</Text>
         <Text style={styles.description} numberOfLines={2}>
           {translation.description}
@@ -41,6 +43,13 @@ export function TopicCard({ topic, completed, total, onPress, locale }: TopicCar
 const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.sm,
+  },
+  cover: {
+    width: '100%',
+    height: 140,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
+    backgroundColor: colors.bg.secondary,
   },
   title: {
     color: colors.text.primary,

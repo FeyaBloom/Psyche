@@ -1,8 +1,8 @@
 import React from 'react'
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native'
+import { TouchableOpacity, Text, StyleSheet, View, Image } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
-import { colors, spacing } from '@/constants/theme'
+import { colors, radius, spacing } from '@/constants/theme'
 import type { Session } from '@/types'
 
 interface SessionCardProps {
@@ -16,11 +16,13 @@ export function SessionCard({ session, isCompleted, onPress, locale }: SessionCa
   const { t } = useTranslation('common')
   const translation = session.translations[locale as keyof typeof session.translations] ?? session.translations.ru
   const minutes = Math.round(session.duration / 60)
+  const coverUrl = session.cover_url ?? 'https://picsum.photos/seed/session-default/200/200'
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <Card style={styles.card}>
         <View style={styles.row}>
+          <Image source={{ uri: coverUrl }} style={styles.cover} resizeMode="cover" />
           <View style={styles.info}>
             <Text style={styles.title}>{translation.title}</Text>
             <Text style={styles.duration}>{minutes} {t('minutes')}</Text>
@@ -44,6 +46,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  cover: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.bg.secondary,
   },
   info: {
     flex: 1,
