@@ -14,7 +14,13 @@
       "adaptiveIcon": {
         "backgroundColor": "#0F1117"
       },
-      "package": "com.feyabloom.psyche"
+      "package": "com.feyabloom.psyche",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -31,8 +37,9 @@
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
+        "projectId": "40abe089-8bb3-4730-9cc6-b1106e2862d1"
       }
     }
   }

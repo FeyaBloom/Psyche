@@ -33,6 +33,7 @@
   "devDependencies": {
     "@babel/core": "^7.27.1",
     "@types/react": "^19.2.14",
+    "eas-cli": "^18.5.0",
     "expo-module-scripts": "^55.0.2",
     "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
