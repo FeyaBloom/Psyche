@@ -6,7 +6,8 @@
     "back": "Назад",
     "sessions": "сессий",
     "minutes": "мин",
-    "completed": "Завершено"
+    "completed": "Завершено",
+    "remaining": "Осталось"
   },
   "onboarding": {
     "slide1_title": "Добро пожаловать в Psyche",
@@ -31,7 +32,11 @@
     "favorite": "Избранное",
     "addFavorite": "Добавить в избранное",
     "removeFavorite": "Удалить из избранного",
-    "sessionComplete": "Сессия завершена"
+    "sessionComplete": "Сессия завершена",
+    "backgroundSound": "Фон",
+    "backgroundOff": "Без фона",
+    "playDuration": "Длительность",
+    "durationMinutesShort": "мин"
   },
   "tabs": {
     "home": "Главная",

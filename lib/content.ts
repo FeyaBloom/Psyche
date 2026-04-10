@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase'
 import type { Locale, Session, Topic } from '@/types'
 
+const MUSIC_SECTION_KEYWORDS = ['music', 'audio', 'sound', 'ambient', 'background', 'фон', 'музык']
+let cachedTopicsWithSessions: Topic[] = []
+
 type TopicRow = {
   id: string
   content_type_id: string
@@ -62,6 +65,53 @@ function emptySessionTranslations(fallbackTitle: string, fallbackAudioUrl = ''):
 
 function toLocale(locale: string): Locale | null {
   return SUPPORTED_LOCALES.includes(locale as Locale) ? (locale as Locale) : null
+}
+
+function matchesMusicSection(value?: string): boolean {
+  if (!value) return false
+  const normalizedValue = value.trim().toLowerCase()
+  return MUSIC_SECTION_KEYWORDS.some((keyword) => normalizedValue.includes(keyword))
+}
+
+function isMusicTopic(topic: Topic): boolean {
+  if (matchesMusicSection(topic.slug) || matchesMusicSection(topic.content_type_slug)) {
+    return true
+  }
+
+  return Object.values(topic.translations).some(
+    (translation) =>
+      matchesMusicSection(translation.title) || matchesMusicSection(translation.description),
+  )
+}
+
+function flattenTopicSessions(topics: Topic[]): Session[] {
+  return topics
+    .slice()
+    .sort((a, b) => a.order_index - b.order_index)
+    .flatMap((topic) => (topic.sessions ?? []).slice().sort((a, b) => a.order_index - b.order_index))
+}
+
+function pickMusicTopics(topics: Topic[]): Topic[] {
+  const directMatches = topics.filter((topic) => isMusicTopic(topic))
+  if (directMatches.length > 0) return directMatches
+
+  const groups = new Map<string, Topic[]>()
+  for (const topic of topics) {
+    const existing = groups.get(topic.content_type_id) ?? []
+    existing.push(topic)
+    groups.set(topic.content_type_id, existing)
+  }
+
+  if (groups.size === 2) {
+    const orderedGroups = Array.from(groups.values())
+    return orderedGroups[1] ?? []
+  }
+
+  return []
+}
+
+export function getCachedMusicSessions(): Session[] {
+  return flattenTopicSessions(pickMusicTopics(cachedTopicsWithSessions))
 }
 
 function normalizeTopic(
@@ -227,13 +277,16 @@ export async function fetchTopicsWithSessions(): Promise<Topic[]> {
     sessionsByTopicId.set(session.topic_id, existing)
   }
 
-  return topics.map((topic) =>
+  const normalizedTopics = topics.map((topic) =>
     normalizeTopic(
       topic,
       topicTranslationsByTopicId.get(topic.id) ?? [],
       sessionsByTopicId.get(topic.id) ?? [],
     ),
   )
+
+  cachedTopicsWithSessions = normalizedTopics
+  return normalizedTopics
 }
 
 export async function fetchSessionsByTopic(topicId: string): Promise<Session[]> {
@@ -272,6 +325,44 @@ export async function fetchSessionById(id: string): Promise<Session | null> {
   const session = data as SessionRow
   const translations = await fetchSessionTranslations([session.id])
   return normalizeSession(session, translations)
+}
+
+export async function fetchSessionsByContentTypeSlug(slug: string): Promise<Session[]> {
+  const topics = cachedTopicsWithSessions.length > 0 ? cachedTopicsWithSessions : await fetchTopicsWithSessions()
+  const normalizedSlug = slug.trim().toLowerCase()
+  const backgroundKeywords = [normalizedSlug, 'background', 'фон', 'ambient']
+
+  const matchesBackground = (value?: string) => {
+    if (!value) return false
+    const normalizedValue = value.trim().toLowerCase()
+    return backgroundKeywords.some((keyword) => normalizedValue.includes(keyword))
+  }
+
+  const matchedTopics = topics.filter((topic) => {
+    if (matchesBackground(topic.slug) || matchesBackground(topic.content_type_slug)) {
+      return true
+    }
+
+    return Object.values(topic.translations).some(
+      (translation) =>
+        matchesBackground(translation.title) || matchesBackground(translation.description),
+    )
+  })
+
+  const fallbackTopics =
+    matchedTopics.length > 0
+      ? matchedTopics
+      : topics.filter((topic) => {
+          const normalizedContentTypeSlug = topic.content_type_slug?.trim().toLowerCase() ?? ''
+          return normalizedContentTypeSlug.includes('music') || normalizedContentTypeSlug.includes('audio')
+        })
+
+  const resolvedTopics =
+    fallbackTopics.length > 0
+      ? fallbackTopics
+      : pickMusicTopics(topics)
+
+  return flattenTopicSessions(resolvedTopics)
 }
 
 export async function fetchSessionsByIds(ids: string[]): Promise<Session[]> {
