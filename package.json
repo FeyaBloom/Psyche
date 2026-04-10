@@ -16,6 +16,7 @@
     "expo-asset": "~55.0.10",
     "expo-audio": "~55.0.9",
     "expo-constants": "~55.0.9",
+    "expo-dev-client": "~55.0.24",
     "expo-linking": "~55.0.8",
     "expo-localization": "~55.0.9",
     "expo-router": "~55.0.7",
