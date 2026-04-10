@@ -13,14 +13,52 @@ interface UseAudioReturn extends AudioState {
   seek: (ms: number) => Promise<void>
 }
 
-export function useAudio(uri: string | null): UseAudioReturn {
+interface LockScreenMetadata {
+  title?: string
+  artist?: string
+  artworkUrl?: string
+}
+
+export function useAudio(uri: string | null, metadata?: LockScreenMetadata): UseAudioReturn {
   const player = useAudioPlayer(uri ?? undefined)
   const status = useAudioPlayerStatus(player)
   const prevUri = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentMode: true })
+    const applyAudioMode = async () => {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
+      })
+    }
+
+    applyAudioMode().catch(() => undefined)
   }, [])
+
+  useEffect(() => {
+    if (!uri) {
+      player.setActiveForLockScreen(false)
+      return
+    }
+
+    player.setActiveForLockScreen(
+      true,
+      {
+        title: metadata?.title,
+        artist: metadata?.artist,
+        artworkUrl: metadata?.artworkUrl,
+      },
+      {
+        showSeekBackward: true,
+        showSeekForward: true,
+      },
+    )
+
+    return () => {
+      player.setActiveForLockScreen(false)
+    }
+  }, [uri, player, metadata?.title, metadata?.artist, metadata?.artworkUrl])
 
   useEffect(() => {
     if (prevUri.current === undefined) {

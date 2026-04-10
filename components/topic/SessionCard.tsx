@@ -3,6 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, View, Image } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
 import { colors, radius, spacing } from '@/constants/theme'
+import { useSessionDuration } from '@/hooks/useSessionDuration'
 import type { Session } from '@/types'
 
 interface SessionCardProps {
@@ -10,13 +11,15 @@ interface SessionCardProps {
   isCompleted: boolean
   onPress: () => void
   locale: string
+  topicIconUrl?: string
 }
 
-export function SessionCard({ session, isCompleted, onPress, locale }: SessionCardProps) {
+export function SessionCard({ session, isCompleted, onPress, locale, topicIconUrl }: SessionCardProps) {
   const { t } = useTranslation('common')
   const translation = session.translations[locale as keyof typeof session.translations] ?? session.translations.ru
-  const minutes = Math.round(session.duration / 60)
-  const coverUrl = session.cover_url ?? 'https://picsum.photos/seed/session-default/200/200'
+  const durationMs = useSessionDuration(translation.audio_url ?? null)
+  const minutes = Math.round(durationMs / 60000)
+  const coverUrl = topicIconUrl ?? session.cover_url ?? 'https://picsum.photos/seed/topic-icon-default/200/200'
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>

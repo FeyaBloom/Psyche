@@ -1,12 +1,17 @@
 import '../lib/i18n'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { colors } from '@/constants/theme'
+import { configureAudio } from '@/lib/audio'
 
 export default function RootLayout() {
+  useEffect(() => {
+    configureAudio().catch(() => undefined)
+  }, [])
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

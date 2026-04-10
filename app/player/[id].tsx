@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react'
 import {
   View,
   Text,
@@ -7,16 +7,17 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
+import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
-import { fetchSessionById } from '@/lib/content'
+import { fetchSessionById, fetchSessionsByTopic, fetchTopicById } from '@/lib/content'
 import { PlayerControls } from '@/components/player/PlayerControls'
 import { colors, spacing } from '@/constants/theme'
 import { useAudio } from '@/hooks/useAudio'
 import { useProgress } from '@/hooks/useProgress'
 import { useFavorites } from '@/hooks/useFavorites'
 import i18n from '@/lib/i18n'
-import type { Session } from '@/types'
+import type { Session, Topic } from '@/types'
 import type { Locale } from '@/types'
 
 const REWIND_MS = 15_000
@@ -48,25 +49,98 @@ const DEMO_SESSION: Session = {
 }
 
 export default function PlayerScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, source } = useLocalSearchParams<{ id: string; source?: 'meditations' | 'music' }>()
   const { t } = useTranslation('common')
+  const navigation = useNavigation()
   const [session, setSession] = useState<Session | null>(null)
+  const [topic, setTopic] = useState<Topic | null>(null)
+  const [topicSessions, setTopicSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [markedComplete, setMarkedComplete] = useState(false)
+  const [isLoopEnabled, setIsLoopEnabled] = useState(false)
+  const [shouldAutoplay, setShouldAutoplay] = useState(false)
+  const endHandledRef = useRef(false)
 
   const locale = (i18n.language as Locale) ?? 'ru'
   const audioUrl = session?.translations[locale]?.audio_url ?? null
+  const currentTranslation = session?.translations[locale] ?? session?.translations.ru
+  const coverUrl = topic?.cover_url ?? session?.cover_url ?? 'https://picsum.photos/seed/player-default/900/900'
 
-  const { isPlaying, position, duration, play, pause, seek } = useAudio(audioUrl)
+  const { isPlaying, position, duration, play, pause, seek } = useAudio(audioUrl, {
+    title: currentTranslation?.title,
+    artist: 'Psyche',
+    artworkUrl: coverUrl,
+  })
   const { isCompleted, markComplete } = useProgress()
   const { isFavorite, toggle } = useFavorites()
+  const currentTrackIndex = useMemo(
+    () => topicSessions.findIndex((item) => item.id === session?.id),
+    [topicSessions, session?.id],
+  )
+  const previousTrackId = currentTrackIndex > 0 ? topicSessions[currentTrackIndex - 1]?.id : null
+  const nextTrackId =
+    currentTrackIndex >= 0 && currentTrackIndex < topicSessions.length - 1
+      ? topicSessions[currentTrackIndex + 1]?.id
+      : null
+  const breadcrumbRootLabel = source === 'music' ? 'Музыка' : 'Медитации'
+  const breadcrumbSection = source === 'music' ? 'music' : 'meditations'
+
+  useLayoutEffect(() => {
+    const topicTitle = topic?.translations[locale]?.title ?? topic?.translations.ru?.title ?? 'Тема'
+    const sessionTitle = session?.translations[locale]?.title ?? session?.translations.ru?.title ?? 'Сессия'
+
+    navigation.setOptions({
+      title: '',
+      headerTitle: () => (
+        <View style={styles.headerBreadcrumbs}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({ pathname: '/(tabs)', params: { section: breadcrumbSection } })
+            }
+          >
+            <Text style={styles.headerBreadcrumbLink}>{breadcrumbRootLabel}</Text>
+          </TouchableOpacity>
+          {source !== 'music' && (
+            <>
+              <Text style={styles.headerBreadcrumbSeparator}>/</Text>
+              {topic?.id ? (
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: '/topic/[id]',
+                      params: { id: topic.id, source: 'meditations' },
+                    })
+                  }
+                >
+                  <Text style={styles.headerBreadcrumbLink} numberOfLines={1}>
+                    {topicTitle}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.headerBreadcrumbLink} numberOfLines={1}>
+                  {topicTitle}
+                </Text>
+              )}
+            </>
+          )}
+          <Text style={styles.headerBreadcrumbSeparator}>/</Text>
+          <Text style={styles.headerBreadcrumbCurrent} numberOfLines={1}>
+            {sessionTitle}
+          </Text>
+        </View>
+      ),
+    })
+  }, [session, topic, locale, navigation, breadcrumbRootLabel, breadcrumbSection, source])
 
   useEffect(() => {
     const fetchSession = async () => {
+      setLoading(true)
+      setError(null)
       if (id === 'demo') {
         setSession(DEMO_SESSION)
-        setError(null)
+        setTopic(null)
+        setTopicSessions([DEMO_SESSION])
         setLoading(false)
         return
       }
@@ -74,14 +148,32 @@ export default function PlayerScreen() {
       try {
         const data = await fetchSessionById(id)
         setSession(data)
+        if (data?.topic_id) {
+          const [topicData, sessionsData] = await Promise.all([
+            fetchTopicById(data.topic_id),
+            fetchSessionsByTopic(data.topic_id),
+          ])
+          setTopic(topicData)
+          setTopicSessions(sessionsData)
+        } else {
+          setTopic(null)
+          setTopicSessions([])
+        }
         setError(data ? null : t('error'))
       } catch (err) {
+        setTopic(null)
+        setTopicSessions([])
         setError(err instanceof Error ? err.message : t('error'))
       }
       setLoading(false)
     }
     fetchSession()
   }, [id, t])
+
+  useEffect(() => {
+    setMarkedComplete(false)
+    endHandledRef.current = false
+  }, [session?.id])
 
   useEffect(() => {
     if (!session || markedComplete) return
@@ -91,13 +183,64 @@ export default function PlayerScreen() {
     }
   }, [position, duration, session, markedComplete, markComplete])
 
+  useEffect(() => {
+    if (!audioUrl || !shouldAutoplay) return
+    play()
+    setShouldAutoplay(false)
+  }, [audioUrl, shouldAutoplay, play])
+
+  useEffect(() => {
+    if (!session || duration <= 0) return
+
+    if (position < duration - 1500) {
+      endHandledRef.current = false
+      return
+    }
+
+    if (position < duration - 500 || endHandledRef.current) {
+      return
+    }
+
+    endHandledRef.current = true
+
+    if (isLoopEnabled) {
+      seek(0)
+        .then(() => {
+          play()
+        })
+        .catch(() => undefined)
+      return
+    }
+
+    if (nextTrackId) {
+      setShouldAutoplay(true)
+      router.replace({ pathname: '/player/[id]', params: { id: nextTrackId, source } })
+    }
+  }, [duration, isLoopEnabled, nextTrackId, play, position, seek, session, source])
+
   const handleRewindBack = useCallback(() => {
     seek(Math.max(0, position - REWIND_MS))
   }, [position, seek])
 
   const handleRewindForward = useCallback(() => {
     seek(Math.min(duration, position + REWIND_MS))
-  }, [position, duration, seek])
+  }, [duration, position, seek])
+
+  const handlePreviousTrack = useCallback(() => {
+    if (!previousTrackId) return
+    setShouldAutoplay(true)
+    router.replace({ pathname: '/player/[id]', params: { id: previousTrackId, source } })
+  }, [previousTrackId, source])
+
+  const handleNextTrack = useCallback(() => {
+    if (!nextTrackId) return
+    setShouldAutoplay(true)
+    router.replace({ pathname: '/player/[id]', params: { id: nextTrackId, source } })
+  }, [nextTrackId, source])
+
+  const handleToggleLoop = useCallback(() => {
+    setIsLoopEnabled((current) => !current)
+  }, [])
 
   const progressPercent = duration > 0 ? (position / duration) * 100 : 0
 
@@ -117,9 +260,8 @@ export default function PlayerScreen() {
     )
   }
 
-  const translation = session.translations[locale] ?? session.translations.ru
+  const translation = currentTranslation ?? session.translations.ru
   const completed = isCompleted(session.id)
-  const coverUrl = session.cover_url ?? 'https://picsum.photos/seed/player-default/900/900'
 
   return (
     <View style={styles.container}>
@@ -143,10 +285,16 @@ export default function PlayerScreen() {
       <PlayerControls
         isPlaying={isPlaying}
         isFavorite={isFavorite(session.id)}
+        isLoopEnabled={isLoopEnabled}
+        hasPreviousTrack={Boolean(previousTrackId)}
+        hasNextTrack={Boolean(nextTrackId)}
         onPlay={play}
         onPause={pause}
         onRewindBack={handleRewindBack}
         onRewindForward={handleRewindForward}
+        onPreviousTrack={handlePreviousTrack}
+        onNextTrack={handleNextTrack}
+        onToggleLoop={handleToggleLoop}
         onToggleFavorite={() => toggle(session.id)}
       />
     </View>
@@ -219,5 +367,25 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.error,
     fontSize: 16,
+  },
+  headerBreadcrumbs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flex: 1,
+  },
+  headerBreadcrumbLink: {
+    color: colors.accent.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  headerBreadcrumbSeparator: {
+    color: colors.text.muted,
+    fontSize: 13,
+  },
+  headerBreadcrumbCurrent: {
+    flex: 1,
+    color: colors.text.secondary,
+    fontSize: 13,
   },
 })

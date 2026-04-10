@@ -4,8 +4,10 @@ import type { Locale, Session, Topic } from '@/types'
 type TopicRow = {
   id: string
   content_type_id: string
+  content_types?: { slug?: string | null } | Array<{ slug?: string | null }> | null
   slug: string
   order_index: number
+  icon_url?: string | null
   cover_url?: string | null
   image_url?: string | null
   translations?: Topic['translations']
@@ -16,6 +18,7 @@ type SessionRow = {
   topic_id: string
   order_index: number
   duration: number
+  icon_url?: string | null
   cover_url?: string | null
   image_url?: string | null
   audio_url?: string | null
@@ -34,6 +37,7 @@ type SessionTranslationRow = {
   locale: string
   title: string
   audio_url: string
+  icon_url?: string | null
 }
 
 const SUPPORTED_LOCALES: Locale[] = ['ru', 'en', 'es', 'ca']
@@ -65,14 +69,19 @@ function normalizeTopic(
   topicTranslations: TopicTranslationRow[],
   sessions: Session[],
 ): Topic {
+  const contentTypeSlug = Array.isArray(topic.content_types)
+    ? (topic.content_types[0]?.slug ?? undefined)
+    : (topic.content_types?.slug ?? undefined)
   const base = emptyTopicTranslations(topic.slug)
 
   if (topic.translations) {
     return {
       id: topic.id,
       content_type_id: topic.content_type_id,
+      content_type_slug: contentTypeSlug,
       slug: topic.slug,
       order_index: topic.order_index,
+      icon_url: topic.icon_url ?? undefined,
       cover_url: topic.cover_url ?? topic.image_url ?? undefined,
       translations: topic.translations,
       sessions,
@@ -91,8 +100,10 @@ function normalizeTopic(
   return {
     id: topic.id,
     content_type_id: topic.content_type_id,
+    content_type_slug: contentTypeSlug,
     slug: topic.slug,
     order_index: topic.order_index,
+    icon_url: topic.icon_url ?? undefined,
     cover_url: topic.cover_url ?? topic.image_url ?? undefined,
     translations: base,
     sessions,
@@ -104,6 +115,7 @@ function normalizeSession(
   sessionTranslations: SessionTranslationRow[],
 ): Session {
   const base = emptySessionTranslations(session.id, session.audio_url ?? '')
+  let iconUrlFromTranslation: string | undefined
 
   if (session.translations) {
     return {
@@ -111,6 +123,7 @@ function normalizeSession(
       topic_id: session.topic_id,
       order_index: session.order_index,
       duration: session.duration,
+      icon_url: session.icon_url ?? undefined,
       cover_url: session.cover_url ?? session.image_url ?? undefined,
       translations: session.translations,
     }
@@ -123,6 +136,9 @@ function normalizeSession(
       title: tr.title,
       audio_url: tr.audio_url,
     }
+    if (tr.icon_url && !iconUrlFromTranslation) {
+      iconUrlFromTranslation = tr.icon_url
+    }
   }
 
   return {
@@ -130,6 +146,7 @@ function normalizeSession(
     topic_id: session.topic_id,
     order_index: session.order_index,
     duration: session.duration,
+    icon_url: iconUrlFromTranslation ?? session.icon_url ?? undefined,
     cover_url: session.cover_url ?? session.image_url ?? undefined,
     translations: base,
   }
@@ -150,7 +167,7 @@ async function fetchSessionTranslations(sessionIds: string[]): Promise<SessionTr
   if (sessionIds.length === 0) return []
   const { data, error } = await supabase
     .from('session_translations')
-    .select('session_id, locale, title, audio_url')
+    .select('session_id, locale, title, audio_url, icon_url')
     .in('session_id', sessionIds)
 
   if (error) return []
@@ -160,7 +177,7 @@ async function fetchSessionTranslations(sessionIds: string[]): Promise<SessionTr
 export async function fetchTopicsWithSessions(): Promise<Topic[]> {
   const { data: topicsData, error: topicsError } = await supabase
     .from('topics')
-    .select('*')
+    .select('*, content_types(slug)')
     .order('order_index')
 
   if (topicsError) throw new Error(topicsError.message)
@@ -284,4 +301,19 @@ export async function fetchSessionsByIds(ids: string[]): Promise<Session[]> {
   normalized.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
 
   return normalized
+}
+
+export async function fetchTopicById(id: string): Promise<Topic | null> {
+  const { data, error } = await supabase
+    .from('topics')
+    .select('*, content_types(slug)')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (!data) return null
+
+  const topic = data as TopicRow
+  const translations = await fetchTopicTranslations([topic.id])
+  return normalizeTopic(topic, translations, [])
 }

@@ -19,7 +19,13 @@
     "plugins": [
       "expo-router",
       "expo-localization",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
