@@ -10,6 +10,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 import { fetchSessionById, fetchSessionsByTopic, fetchTopicById } from '@/lib/content'
 import { PlayerControls } from '@/components/player/PlayerControls'
 import { colors, spacing } from '@/constants/theme'
@@ -86,12 +87,26 @@ export default function PlayerScreen() {
   const breadcrumbRootLabel = source === 'music' ? 'Музыка' : 'Медитации'
   const breadcrumbSection = source === 'music' ? 'music' : 'meditations'
 
+  const handleHeaderBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack()
+      return
+    }
+    router.replace('/(tabs)')
+  }, [navigation])
+
   useLayoutEffect(() => {
     const topicTitle = topic?.translations[locale]?.title ?? topic?.translations.ru?.title ?? 'Тема'
     const sessionTitle = session?.translations[locale]?.title ?? session?.translations.ru?.title ?? 'Сессия'
 
     navigation.setOptions({
       title: '',
+      headerBackVisible: false,
+      headerLeft: () => (
+        <TouchableOpacity onPress={handleHeaderBack} style={styles.headerBackButton} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+      ),
       headerTitle: () => (
         <View style={styles.headerBreadcrumbs}>
           <TouchableOpacity
@@ -131,7 +146,7 @@ export default function PlayerScreen() {
         </View>
       ),
     })
-  }, [session, topic, locale, navigation, breadcrumbRootLabel, breadcrumbSection, source])
+  }, [session, topic, locale, navigation, breadcrumbRootLabel, breadcrumbSection, source, handleHeaderBack])
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -367,6 +382,10 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.error,
     fontSize: 16,
+  },
+  headerBackButton: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   headerBreadcrumbs: {
     flexDirection: 'row',

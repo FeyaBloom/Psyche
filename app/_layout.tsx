@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { colors } from '@/constants/theme'
 import { configureAudio } from '@/lib/audio'
+import { FavoritesProvider } from '@/context/FavoritesContext'
 
 export default function RootLayout() {
   useEffect(() => {
@@ -15,6 +16,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <FavoritesProvider>
         <StatusBar style="light" />
         <Stack
           screenOptions={{
@@ -29,6 +31,7 @@ export default function RootLayout() {
           <Stack.Screen name="topic/[id]" options={{ title: '' }} />
           <Stack.Screen name="player/[id]" options={{ title: '' }} />
         </Stack>
+        </FavoritesProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

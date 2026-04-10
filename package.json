@@ -4,6 +4,11 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:tunnel": "EXPO_FORCE_WEBCONTAINER_ENV=1 expo start --tunnel",
+    "start:tunnel:clean": "(lsof -ti tcp:8081 | xargs -r kill) || true && EXPO_FORCE_WEBCONTAINER_ENV=1 expo start --tunnel --port 8081",
+    "start:tunnel:go": "EXPO_FORCE_WEBCONTAINER_ENV=1 expo start --tunnel --go",
+    "start:tunnel:go:clean": "(lsof -ti tcp:8081 | xargs -r kill) || true && EXPO_FORCE_WEBCONTAINER_ENV=1 expo start --tunnel --go --port 8081",
+    "start:web": "expo start --web",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

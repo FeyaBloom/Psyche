@@ -11,7 +11,7 @@ export const colors = {
     glow:     '#8B6FD420',
   },
   text: {
-    primary:   '#F0EDF8',
+    primary:   '#F5F0E6',
     secondary: '#9B96B0',
     muted:     '#5C5870',
   },

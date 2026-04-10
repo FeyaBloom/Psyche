@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   contentRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
     gap: spacing.sm,
     flex: 1,
   },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   mainBlock: {
     flex: 1,
-    justifyContent: 'space-between',
+    minHeight: 120,
     paddingVertical: spacing.xs,
   },
   title: {
@@ -103,10 +103,11 @@ const styles = StyleSheet.create({
   description: {
     color: colors.text.secondary,
     fontSize: 13,
+    marginBottom: spacing.sm,
   },
   progressRow: {
     gap: spacing.xs,
-    marginTop: spacing.xl,
+    marginTop: 'auto',
   },
   progressText: {
     color: colors.text.muted,

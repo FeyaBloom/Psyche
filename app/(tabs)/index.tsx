@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   Image,
+  useWindowDimensions,
 } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useNavigation } from '@react-navigation/native'
@@ -115,6 +116,8 @@ export default function HomeScreen() {
   const { isCompleted } = useProgress()
   const scrollRef = useRef<ScrollView>(null)
   const sectionOffsets = useRef<Record<HomeSection, number>>({})
+  const { width } = useWindowDimensions()
+  const isTablet = width >= 768
 
   const fetchTopics = useCallback(async () => {
     setLoading(true)
@@ -341,7 +344,7 @@ export default function HomeScreen() {
                     const sessions = item.sessions ?? []
                     const completedCount = sessions.filter((s) => isCompleted(s.id)).length
                     return (
-                      <View key={item.id} style={styles.topicCell}>
+                      <View key={item.id} style={[styles.topicCell, isTablet ? styles.topicCellTablet : styles.topicCellMobile]}>
                         <TopicCard
                           topic={item}
                           completed={completedCount}
@@ -410,8 +413,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   topicCell: {
-    width: '48.5%',
     marginBottom: spacing.sm,
+  },
+  topicCellMobile: {
+    width: '100%',
+  },
+  topicCellTablet: {
+    width: '48.5%',
   },
   tracksGrid: {
     flexDirection: 'row',

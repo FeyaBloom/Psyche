@@ -11,6 +11,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
+import { Ionicons } from '@expo/vector-icons'
 import { fetchSessionsByTopic, fetchTopicById } from '@/lib/content'
 import { SessionCard } from '@/components/topic/SessionCard'
 import { colors, spacing } from '@/constants/theme'
@@ -29,6 +30,14 @@ export default function TopicScreen() {
   const { isCompleted } = useProgress()
   const locale = (i18n.language as Locale) ?? 'ru'
   const topicTranslation = topic?.translations[locale] ?? topic?.translations.ru
+
+  const handleHeaderBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack()
+      return
+    }
+    router.replace('/(tabs)')
+  }, [navigation])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -50,6 +59,12 @@ export default function TopicScreen() {
     const title = topic?.translations[locale]?.title ?? topic?.translations.ru?.title ?? 'Раздел'
     navigation.setOptions({
       title: '',
+      headerBackVisible: false,
+      headerLeft: () => (
+        <TouchableOpacity onPress={handleHeaderBack} style={styles.headerBackButton} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+      ),
       headerTitle: () => (
         <View style={styles.headerBreadcrumbs}>
           <TouchableOpacity
@@ -66,7 +81,7 @@ export default function TopicScreen() {
         </View>
       ),
     })
-  }, [topic, locale, navigation])
+  }, [topic, locale, navigation, handleHeaderBack])
 
   useEffect(() => {
     fetchData()
@@ -145,6 +160,10 @@ const styles = StyleSheet.create({
   },
   headerBlock: {
     marginBottom: spacing.sm,
+  },
+  headerBackButton: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   headerBreadcrumbs: {
     flexDirection: 'row',

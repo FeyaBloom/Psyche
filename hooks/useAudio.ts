@@ -20,7 +20,7 @@ interface LockScreenMetadata {
 }
 
 export function useAudio(uri: string | null, metadata?: LockScreenMetadata): UseAudioReturn {
-  const player = useAudioPlayer(uri ?? undefined)
+  const player = useAudioPlayer()
   const status = useAudioPlayerStatus(player)
   const prevUri = useRef<string | null | undefined>(undefined)
 
@@ -38,39 +38,44 @@ export function useAudio(uri: string | null, metadata?: LockScreenMetadata): Use
 
   useEffect(() => {
     if (!uri) {
-      player.setActiveForLockScreen(false)
+      try { player.setActiveForLockScreen(false) } catch { /* player may be released */ }
       return
     }
 
-    player.setActiveForLockScreen(
-      true,
-      {
-        title: metadata?.title,
-        artist: metadata?.artist,
-        artworkUrl: metadata?.artworkUrl,
-      },
-      {
-        showSeekBackward: true,
-        showSeekForward: true,
-      },
-    )
+    try {
+      player.setActiveForLockScreen(
+        true,
+        {
+          title: metadata?.title,
+          artist: metadata?.artist,
+          artworkUrl: metadata?.artworkUrl,
+        },
+        {
+          showSeekBackward: true,
+          showSeekForward: true,
+        },
+      )
+    } catch { /* player may be released */ }
 
     return () => {
-      player.setActiveForLockScreen(false)
+      try { player.setActiveForLockScreen(false) } catch { /* player may be released */ }
     }
   }, [uri, player, metadata?.title, metadata?.artist, metadata?.artworkUrl])
 
   useEffect(() => {
-    if (prevUri.current === undefined) {
-      prevUri.current = uri
+    if (uri === prevUri.current) {
       return
     }
-    if (uri !== prevUri.current) {
-      prevUri.current = uri
-      if (uri) {
-        player.replace(uri)
-      }
+
+    prevUri.current = uri
+
+    if (uri) {
+      player.replace(uri)
+      return
     }
+
+    player.pause()
+    player.seekTo(0).catch(() => undefined)
   }, [uri, player])
 
   const play = useCallback(() => {
@@ -86,9 +91,9 @@ export function useAudio(uri: string | null, metadata?: LockScreenMetadata): Use
   }, [player])
 
   return {
-    isPlaying: status.playing,
-    position: status.currentTime * 1000,
-    duration: status.duration * 1000,
+    isPlaying: Boolean(status?.playing),
+    position: (status?.currentTime ?? 0) * 1000,
+    duration: (status?.duration ?? 0) * 1000,
     play,
     pause,
     seek,
